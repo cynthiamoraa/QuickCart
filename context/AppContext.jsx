@@ -5,6 +5,8 @@ import axios from "axios";
 import { set } from "mongoose";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+
 
 export const AppContext = createContext();
 
@@ -49,7 +51,7 @@ export const AppContextProvider = (props) => {
 
             if (data.success) {
                 setUserData(data.user);
-                setCartItems(data.user.cartItems);
+                setCartItems(data.user.cartItems || {});
             }else {
                 toast.error(data.message);
             }

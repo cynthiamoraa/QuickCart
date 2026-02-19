@@ -16,64 +16,78 @@ cloudinary.config({
 
 export async function POST(request){
     try {
-       const {userId} = getAuth(request);
-       const isSeller = await authSeller(userId);
-        
-       if (!isSeller) {
-           return NextResponse.json({success: false, message: "You are not authorized to add products"});
-       }
-         const formData = await request.formData();
+      const { userId } = getAuth(request);
+      const isSeller = await authSeller(userId);
 
-         const name = formData.get('name');
-            const description = formData.get('description');
-        const category = formData.get('category');
-        const price = formData.get('price');
-        const offerPrice = formData.get('offerPrice');
-        
-        const files = formData.getAll('images');
+      if (!isSeller) {
+        return NextResponse.json({
+          success: false,
+          message: "You are not authorized to add products",
+        });
+      }
+      const formData = await request.formData();
 
-        if (!files || files.length === 0) {
-            return NextResponse.json({success: false, message: "no files uploaded"});
-        }
+      const name = formData.get("name");
+      const description = formData.get("description");
+      const category = formData.get("category");
+      const price = formData.get("price");
+      const offerPrice = formData.get("offerPrice");
 
-        // Upload images to Cloudinary
-        const result = await Promise.all(
-            files.map(async (file) => {
-                const arrayBuffer = await file.arrayBuffer();
-                const buffer = Buffer.from(arrayBuffer);
+      const files = formData.getAll("images");
 
-                return new Promise((resolve, reject) => {
-                    const stream = cloudinary.uploader.upload_stream(
-                        {resource_type: 'auto'},
-                        (error, result) => {
-                            if (error) {
-                                reject(error);
-                            } else {
-                                resolve(result);
-                            }
-                        }
-                    )
-                    stream.end(buffer);
-                })
-            }))
+      if (!files || files.length === 0) {
+        return NextResponse.json({
+          success: false,
+          message: "no files uploaded",
+        });
+      }
 
-            const image = result.map(result => result.secure_url);
+      // Upload images to Cloudinary
+      const result = await Promise.all(
+        files.map(async (file) => {
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
 
-            await connectDB();
-           const newProduct = await Product.create({
-             userId,
-             name,
-             description,
-             category,
-             price: Number(price),
-             offerPrice: Number(offerPrice),
-             image,
-             date: Date.now(),
-           });
+          return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { resource_type: "auto" },
+              (error, result) => {
+                if (error) {
+                  reject(error);
+                } else {
+                  resolve(result);
+                }
+              }
+            );
+            stream.end(buffer);
+          });
+        })
+      );
 
-           return NextResponse.json({success: true, message: "Product added successfully", newProduct});
+      const image = result.map((result) => result.secure_url);
 
+      await connectDB();
+      const newProduct = await Product.create({
+        userId,
+        name,
+        description,
+        category,
+        price: Number(price),
+        offerPrice: Number(offerPrice),
+        image,
+        date: Date.now(),
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Product added successfully",
+        newProduct,
+      });
     } catch (error) {
-        NextResponse.json({ success: false, message: error.message });
+      console.error("ADD PRODUCT ERROR:", error);
+      return NextResponse.json(
+        { success: false, message: error.message },
+        { status: 500 }
+      );
     }
 }
